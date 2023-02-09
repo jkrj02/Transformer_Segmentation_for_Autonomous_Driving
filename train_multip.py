@@ -3,12 +3,14 @@ import os
 from collections import OrderedDict
 from glob import glob
 
+import h5py
 import pandas as pd
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
 import yaml
+import dataloader
 
 import albumentations as albu
 from albumentations.augmentations import transforms
@@ -24,6 +26,8 @@ from utils import AverageMeter, str2bool
 
 import network
 
+train_path = 'option1_driving-segmentation/driving_train_data.h5'
+test_path = 'option1_driving-segmentation/driving_test_data.h5'
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -228,43 +232,46 @@ def main():
         raise NotImplementedError
 
     # Data loading code
-    img_ids = glob(os.path.join('inputs', config['dataset'], 'images', '*' + config['img_ext']))
-    img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
+    # img_ids = glob(os.path.join('inputs', config['dataset'], 'images', '*' + config['img_ext']))
+    # img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
+    #
+    # train_img_ids, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
+    #
+    # train_transform = Compose([
+    #     albu.RandomRotate90(),
+    #     transforms.Flip(),
+    #     OneOf([
+    #         transforms.HueSaturationValue(),
+    #         transforms.RandomBrightness(),
+    #         transforms.RandomContrast(),
+    #     ], p=1),
+    #     transforms.Normalize(),
+    # ])
+    # # 随机旋转90°，翻转，色调饱和度值，随机亮度，随机对比度，归一化
+    #
+    # val_transform = Compose([
+    #     transforms.Normalize(),
+    # ])
+    #
+    # train_dataset = Dataset(
+    #     img_ids=train_img_ids,
+    #     img_dir=os.path.join('inputs', config['dataset'], 'images'),
+    #     mask_dir=os.path.join('inputs', config['dataset'], 'masks'),
+    #     img_ext=config['img_ext'],
+    #     mask_ext=config['mask_ext'],
+    #     num_classes=config['num_classes'],
+    #     transform=train_transform)
+    # val_dataset = Dataset(
+    #     img_ids=val_img_ids,
+    #     img_dir=os.path.join('inputs', config['dataset'], 'images'),
+    #     mask_dir=os.path.join('inputs', config['dataset'], 'masks'),
+    #     img_ext=config['img_ext'],
+    #     mask_ext=config['mask_ext'],
+    #     num_classes=config['num_classes'],
+    #     transform=val_transform)
 
-    train_img_ids, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
-
-    train_transform = Compose([
-        albu.RandomRotate90(),
-        transforms.Flip(),
-        OneOf([
-            transforms.HueSaturationValue(),
-            transforms.RandomBrightness(),
-            transforms.RandomContrast(),
-        ], p=1),
-        transforms.Normalize(),
-    ])
-    # 随机旋转90°，翻转，色调饱和度值，随机亮度，随机对比度，归一化
-
-    val_transform = Compose([
-        transforms.Normalize(),
-    ])
-
-    train_dataset = Dataset(
-        img_ids=train_img_ids,
-        img_dir=os.path.join('inputs', config['dataset'], 'images'),
-        mask_dir=os.path.join('inputs', config['dataset'], 'masks'),
-        img_ext=config['img_ext'],
-        mask_ext=config['mask_ext'],
-        num_classes=config['num_classes'],
-        transform=train_transform)
-    val_dataset = Dataset(
-        img_ids=val_img_ids,
-        img_dir=os.path.join('inputs', config['dataset'], 'images'),
-        mask_dir=os.path.join('inputs', config['dataset'], 'masks'),
-        img_ext=config['img_ext'],
-        mask_ext=config['mask_ext'],
-        num_classes=config['num_classes'],
-        transform=val_transform)
+    train_dataset = dataloader.LoadData(train_path, train=True)
+    val_dataset = dataloader.LoadData(test_path, train=False)
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
